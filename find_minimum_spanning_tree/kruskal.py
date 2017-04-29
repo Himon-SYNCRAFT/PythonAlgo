@@ -1,85 +1,133 @@
 from collections import namedtuple
-import pprint
 
 
-pp = pprint.PrettyPrinter(indent=4)
-WeightedEdge = namedtuple('WeightedEdge', ['node_from', 'node_to', 'weight'])
+"""
+Kruskal Algorithm for finding minimum spanning tree in graph
+
+1. Extract Edges from Graph and sort them by weight
+2. Iterate over sorted edges
+3. If edge not create a cycle, add it to the result
+
+For finding if edge create a cycle we use find_union algorithm:
+    1. Store all nodes and assing themselves as representatives of tree
+    2. When testing edge, find if both nodes in edge are in the same tree
+    3. If they are then edge will create a cycle
+"""
 
 
-def find_union(edge, reprs):
-    node_a = edge.node_from
-    node_b = edge.node_to
+WeightedEdge = namedtuple('WeightedEdge', ['weight', 'node_from', 'node_to'])
 
-    repr_a = reprs[node_a]
-    len_a = 1
 
-    repr_b = reprs[node_b]
-    len_b = 1
+def is_edge_create_cycle(reps, edge):
+    _, node_a, node_b = edge
+    reps_to_update = [node_a, node_b]
 
-    nodes_to_change = [node_a]
+    rep_a = reps[node_a]
 
-    while repr_a != reprs[repr_a]:
-        nodes_to_change.append(repr_a)
-        repr_a = reprs[repr_a]
-        len_a += 1
+    # find root of tree which contain node_a
+    while rep_a != reps[rep_a]:
+        reps_to_update.append(rep_a)
+        rep_a = reps[rep_a]
 
-    for node in nodes_to_change:
-        reprs[node] = repr_a
+    rep_b = reps[node_b]
 
-    nodes_to_change = [node_b]
-    while repr_b != reprs[repr_b]:
-        nodes_to_change.append(repr_b)
-        repr_b = reprs[repr_b]
-        len_b += 1
+    # find root of tree which contain node_b
+    while rep_b != reps[rep_b]:
+        reps_to_update.append(rep_b)
+        rep_b = reps[rep_b]
 
-    for node in nodes_to_change:
-        reprs[node] = repr_b
-
-    if repr_a != repr_b:
-        if len_b <= len_a:
-            reprs[repr_a] = repr_b
-        else:
-            reprs[repr_b] = repr_a
-
+    if rep_a == rep_b:
         return True
+
+    for rep in reps_to_update:
+        reps[rep] = rep_a
 
     return False
 
 
-def kruskal(input_edges):
-    edges = sorted(input_edges, key=lambda x: x.weight)
-    nodes = set()
+def get_edges_from_graph(graph):
+    visited = set()
 
-    for edge in edges:
-        nodes.add(edge.node_from)
-        nodes.add(edge.node_to)
+    for node, children in graph.items():
+        for child, weight in children.items():
+            nodes = [node, child]
+            nodes.sort()
+            edge = WeightedEdge(weight, nodes[0], nodes[1])
+            visited.add(edge)
 
-    reprs = { node: node for node in nodes }
+    return list(visited)
+
+
+def kruskal(graph):
+    edges = get_edges_from_graph(graph)
+    edges.sort(key=lambda x: x.weight)
+    representatives = {}
     result = []
 
-    for edge in edges:
-        add_edge = find_union(edge, reprs)
+    for node in graph:
+        representatives[node] = node
 
-        if add_edge:
+    for edge in edges:
+        if not is_edge_create_cycle(representatives, edge):
             result.append(edge)
 
     return result
 
-if __name__ == '__main__':
-    edges = [
-        WeightedEdge(node_from='A', node_to='B', weight=1),
-        WeightedEdge(node_from='A', node_to='D', weight=2),
-        WeightedEdge(node_from='A', node_to='F', weight=2),
-        WeightedEdge(node_from='B', node_to='C', weight=1),
-        WeightedEdge(node_from='B', node_to='D', weight=2),
-        WeightedEdge(node_from='C', node_to='E', weight=3),
-        WeightedEdge(node_from='C', node_to='D', weight=1),
-        WeightedEdge(node_from='D', node_to='E', weight=2),
-        WeightedEdge(node_from='D', node_to='F', weight=1),
-        WeightedEdge(node_from='D', node_to='G', weight=3),
-        WeightedEdge(node_from='E', node_to='G', weight=1),
-        WeightedEdge(node_from='F', node_to='G', weight=3),
-    ]
 
-    result = kruskal(edges)
-    assert len(result) == 6, len(result)
+if __name__ == '__main__':
+    graph = {
+        'A': {
+            'B': 2,
+            'C': 3,
+            'D': 3,
+        },
+        'B': {
+            'A': 2,
+            'C': 4,
+            'E': 3,
+        },
+        'C': {
+            'A': 3,
+            'B': 4,
+            'D': 5,
+            'E': 1,
+            'F': 6,
+        },
+        'D': {
+            'A': 3,
+            'C': 5,
+            'F': 7,
+        },
+        'E': {
+            'B': 3,
+            'C': 1,
+            'F': 8,
+        },
+        'F': {
+            'C': 6,
+            'D': 7,
+            'E': 8,
+            'G': 9,
+        },
+        'G': {
+            'F': 9,
+        },
+    }
+
+    result = get_edges_from_graph(graph)
+    assert len(result) == len(set(result)), len(result)
+
+    result = is_edge_create_cycle({'A': 'A', 'B': 'B'}, WeightedEdge(1, 'A', 'B'))
+    assert result == False
+
+    result = is_edge_create_cycle({'A': 'A', 'B': 'A'}, WeightedEdge(1, 'A', 'B'))
+    assert result == True
+
+    result = kruskal(graph)
+
+    total_weight = 0
+
+    for weight, _, _ in result:
+        total_weight += weight
+
+    assert total_weight == 24, total_weight

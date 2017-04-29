@@ -3,25 +3,38 @@ from heapq import heapify, heappop, heappush
 from collections import namedtuple
 
 
-WeightedEdge = namedtuple('WeightedEdge', ['weight', 'parent', 'child'])
+"""
+Prim's Algorithm for finding minimum spanning tree in graph
+
+1. Choose a node to start traversing
+2. Loop:
+    1. Add node's children to the min_heap
+    2. If node not visited add edge from node you came from
+    3. Get child whose edge has smallest weight
+"""
 
 
-def prims(graph, s):
-    min_heap = [WeightedEdge(weight=0, parent=None, child=s)]
+WeightedEdge = namedtuple('WeightedEdge', ['weight', 'node_from', 'node_to'])
+
+
+def prims(graph):
+    # node to start from
+    start = next(iter(graph))
+    min_heap = [WeightedEdge(weight=0, node_from=None, node_to=start)]
     result = {}
 
     while min_heap:
-        edge = heappop(min_heap)
-        if edge.child in result:
+        _, node_from, node_to = heappop(min_heap)
+        if node_to in result:
             continue
-        result[edge.child] = edge.parent
+        result[node_to] = node_from
 
-        for child, weight in graph[edge.child].items():
-            heappush(min_heap,(WeightedEdge(weight=weight,parent=edge.child,
-                                           child=child)))
+        for child, weight in graph[node_to].items():
+            heappush(min_heap, WeightedEdge(weight, node_to, child))
 
     return [WeightedEdge(graph[parent][child], parent, child)
             for parent, child in result.items() if child is not None]
+
 
 
 if __name__ == '__main__':
@@ -64,12 +77,12 @@ if __name__ == '__main__':
         },
     }
 
-    result = prims(graph, 'A')
-    print(result)
+    result = prims(graph)
 
     total_weight = 0
 
     for weight, _, _ in result:
         total_weight += weight
 
-    assert total_weight == 24
+    assert total_weight == 24, total_weight
+
