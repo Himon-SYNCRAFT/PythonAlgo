@@ -1,5 +1,5 @@
 from math import inf as infinity
-from heapq import heapify, heappop, heappush
+from heapq import heappop, heappush
 from collections import namedtuple
 
 
